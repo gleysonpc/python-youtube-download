@@ -1,19 +1,45 @@
 import ssl
-from pytube import YouTube
+import moviepy.editor as mpe
 import os
+import pytubefix
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
-def download_you_tube(video_url: str, path: str = './download') -> None:
-    """ Downloads YouTube video to local folder
-    Args:
-        video_url (str): YouTube video URL origin
-        path (str, optional): Output folder destination. Defaults to './download'.
-    """
-    yt = YouTube(video_url)
-    yt = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
-    if not os.path.exists(path):
-        os.makedirs(path)
-    yt.download(path)
+video_url = input('Digite a URL do video: ')
 
-download_you_tube('')
+yt = pytubefix
+vname = "./temp/clip.mp4"
+aname = "./temp/audio.mp3"
+
+yt_source = yt.YouTube(video_url)
+output_name = yt_source.title
+
+# Download video and rename
+video = (
+    yt_source
+    .streams.filter(subtype="mp4", res="1080p")
+    .first()
+    .download()
+)
+os.rename(video, vname)
+
+# Download audio and rename
+audio = (
+    yt_source
+    .streams.filter(only_audio=True)
+    .first()
+    .download()
+)
+os.rename(audio, aname)
+
+# Setting the audio to the video
+video = mpe.VideoFileClip(vname)
+audio = mpe.AudioFileClip(aname)
+final = video.set_audio(audio)
+
+# Output result
+final.write_videofile(f'./download/{output_name}.mp4')
+
+# Delete video and audio to keep the result
+os.remove(vname)
+os.remove(aname)
